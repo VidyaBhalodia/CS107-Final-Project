@@ -1,0 +1,462 @@
+RFV13D,RFV description
+-9,Blank
+0,Blank
+1005,Chills
+1010,Fever
+1012,Other symptoms of body temperature
+1015,"Tiredness, exhaustion"
+1020,General weakness
+1025,General ill feeling
+1030,Fainting (syncope)
+1035,Symptoms of fluid abnormalities
+1040,Weight gain
+1045,Weight loss
+1046,"Symptoms of face, not elsewhere class..."
+1050,Chest pain and related symptoms (not ...
+1055,"Pain, site not referable to a specifi..."
+1060,"Pain and related symptoms, general, s..."
+1065,"Tumor or mass, site unspecified"
+1066,"Lesion, internal, NOS (excludes brain and"
+1070,"Bleeding, site unspecified"
+1075,Symptoms of growth and developmental ...
+1080,"General symptoms of infants, NEC"
+1085,General or unspecified nonviral infec...
+1090,"Allergy, NOS"
+1095,Disorders of motor functions
+1096,"Dyslexia, NOS"
+1100,Anxiety and nervousness
+1105,Fears and phobias
+1110,Depression
+1115,Anger
+1120,Problems with identity and self-esteem
+1125,Restlessness
+1130,Behavioral disturbances
+1135,Disturbances of sleep
+1140,Smoking problems
+1145,Alcohol-related problems
+1150,Abnormal drug usage
+1155,Delusions or hallucinations
+1160,Psychosexual disorders
+1165,Oth sympt/prob relat psychological an...
+1200,Abnormal involuntary movements
+1205,Convulsions
+1207,"Symptoms of head, NEC"
+1210,"Headache, pain in head"
+1215,"Memory, disturbances of"
+1220,Disturbances of sensation
+1225,Vertigo - dizziness
+1230,Weakness (neurologic)
+1235,"Disorders of speech, speech disturbance"
+1240,Other symptoms referable to the nervo...
+1260,Abnormal pulsations and palpitations
+1265,Heart pain
+1270,Other symptoms of the heart
+1275,Symptoms of lymph glands (or nodes)
+1280,Oth sympt referable to the cardiovasc...
+1305,Vision dysfunctions
+1310,Discharge from eye
+1315,Eye infection and inflammation
+1320,Abnormal sensations of the eye
+1325,Abnormal eye movements
+1330,Abnormal appearance of eyes
+1335,"Other symptoms referable to eye, NEC"
+1340,Symptoms of eyelids
+1345,Hearing dysfunctions
+1350,Discharge from ear
+1355,"Earache, or ear infection"
+1360,Plugged feeling in ear
+1365,"Other symptoms referable to the ears,..."
+1400,Nasal congestion
+1405,Other symptoms of nose
+1410,Sinus problems
+1415,Shortness of breath
+1420,Labored or difficult breathing
+1425,Wheezing
+1430,"Breathing problems, NEC"
+1435,Sneezing
+1440,Cough
+1445,"Head cold, upper respiratory infectio..."
+1450,General viral infection
+1455,Symptoms referable to throat
+1460,Symptoms referable to tonsils
+1470,Abnormalities of sputum or phlegm
+1475,Congestion in chest
+1480,Disorders of voice
+1485,Other symptoms referable to the respi...
+1500,Symptoms of teeth and gums
+1501,"Symptoms of the jaw, NOS"
+1505,Symptoms referable to lips
+1510,Symptoms referable to mouth
+1515,Symptoms referable to tongue
+1520,Difficulty in swallowing (dysphagia)
+1525,Nausea
+1530,Vomiting
+1535,Heartburn and indigestion (dyspepsia)
+1540,Gastrointestinal infection
+1545,"Stomach and abdominal pain, cramps an..."
+1565,Change in abdominal size
+1570,"Appetite, abnormal"
+1575,Difficulty eating
+1580,Gastrointestinal bleeding
+1585,Flatulence
+1590,Constipation
+1595,Diarrhea
+1600,Other symptoms or changes in bowel fu...
+1605,Symptoms referable to anus-rectum
+1610,"Symptoms of liver, gallbladder, and b..."
+1615,Other symptoms referable to digestive...
+1640,Abnormalities of urine
+1645,Frequency and urgency of urination
+1650,Painful urination
+1655,Incontinence of urine (enuresis)
+1660,Other urinary dysfunctions
+1665,Symptoms of bladder
+1670,Symptoms of the kidneys
+1675,"Urinary tract infection, NOS"
+1680,Other symptoms referable to urinary t...
+1700,Symptoms of penis
+1705,Penile discharge
+1710,Symptoms of prostate
+1715,Symptoms of the scrotum and testes
+1720,Other symptoms of male reproductive s...
+1730,Absence of menstruation (amenorrhea)
+1735,Irregularity of menstrual interval
+1740,Irregularity of menstrual flow
+1745,"Menstrual symptoms, other and unspeci..."
+1750,Menopausal symptoms
+1755,Uterine and vaginal bleeding
+1760,Vaginal discharge
+1765,Other vaginal symptoms
+1770,Vulvar disorders
+1775,Pelvic symptoms
+1790,Problems of pregnancy
+1791,Postpartum problems
+1795,Other symptoms referable to the femal...
+1800,Pain or soreness of breast
+1805,Lump or mass of breast
+1810,Other symptoms referable to breast
+1815,Symptoms of infertility
+1820,Hormone deficiency or problem
+1825,Symptoms of sexual dysfunction
+1830,Acne or pimples
+1835,Discoloration or pigmentation
+1840,"Infections of skin, NOS"
+1845,Symptoms of skin moles
+1850,"Warts, NOS"
+1855,Other growths of skin
+1860,Skin rash
+1865,Skin lesion
+1870,"Skin irritations, NEC"
+1875,Swelling of skin
+1880,Other symptoms referable to skin
+1885,Symptoms referable to nails
+1890,Symptoms referable to hair and scalp
+1895,Other symptoms of nails and hair
+1900,Neck symptoms
+1905,Back symptoms
+1910,Low back symptoms
+1915,Hip symptoms
+1920,Leg symptoms
+1925,Knee symptoms
+1930,Ankle symptoms
+1935,Foot and toe symptoms
+1940,Shoulder symptoms
+1945,Arm symptoms
+1950,Elbow symptoms
+1955,Wrist symptoms
+1960,Hand and finger symptoms
+1965,Symptoms of unspecified muscles
+1970,Symptoms of unspecified joints
+1975,Musculoskeletal deformities
+1980,Other musculoskeletal symptoms; inclu...
+2005,Intestinal infectious diseases
+2010,Streptococcal infection
+2015,Viral diseases
+2020,Venereal diseases
+2025,Fungus infections (mycoses)
+2030,Parasitic diseases
+2031,"Sepsis, septicemia"
+2035,Other and unspecified infectious and ...
+2100,"Cancer, gastrointestinal tract"
+2105,"Cancer, respiratory tract"
+2110,"Cancer, skin and subcutaneous tissues"
+2115,"Cancer, breast"
+2120,"Cancer, female genital tract"
+2125,"Cancer, male genital tract"
+2126,Cancer of urinary tract
+2130,Other malignant and unspecified neopl...
+2135,"Hodgkin's disease, lymphomata, leukemias"
+2140,Fibroids and other uterine neoplasms
+2145,Other benign neoplasms
+2150,Neoplasm of uncertain nature
+2200,Diseases of the thyroid gland
+2201,Diabetic skin ulcer (wound check)
+2205,Diabetes mellitus
+2210,"Gout, hyperuricemia"
+2215,"Other endocrine, nutritional, and met..."
+2250,Anemia
+2255,Other diseases of blood and blood-for...
+2300,Organic psychoses
+2305,Functional psychoses
+2310,Neuroses
+2315,Personality and character disorders
+2320,Alcoholism
+2321,Drug dependence
+2325,Mental retardation
+2330,Other mental disease
+2350,Multiple sclerosis
+2355,Parkinson's disease (paralysis agitans)
+2360,Epilepsy
+2365,Migraine headache
+2370,Other diseases of central nervous system
+2400,Inflammatory diseases of the eye
+2405,Refractive error
+2410,Cataract
+2415,Glaucoma
+2420,Other diseases of the eye
+2450,Otitis media
+2455,Other diseases of the ear
+2500,Rheumatic fever and chronic rheumatic...
+2505,Hypertension with involvement of targ...
+2510,Hypertension
+2515,Ischemic heart disease
+2520,Other heart disease
+2525,Cerebrovascular disease
+2530,Atherosclerosis
+2535,"Phlebitis, thrombophlebitis"
+2540,Varicose veins
+2545,Hemorrhoids
+2550,Other disease of circulatory system
+2600,Upper respiratory infections except t...
+2605,Tonsillitis
+2610,Bronchitis
+2620,Emphysema
+2625,Asthma
+2630,Pneumonia
+2635,Hay fever
+2640,Other respiratory diseases
+2650,"Diseases of the esophagus, stomach, a..."
+2655,"Appendicitis, all types"
+2660,Hernia of abdominal cavity
+2665,Diseases of the intestine and peritoneum
+2670,"Diseases of the liver, gallbladder, p..."
+2675,Other diseases of digestive system
+2700,Cystitis
+2705,Urinary tract disease except cystitis
+2710,Diseases of the male genital organs
+2715,Fibrocystic and other diseases of breast
+2720,Pelvic inflammatory disease (PID)
+2725,"Cervicitis, vaginitis"
+2730,Other diseases of female reproductive...
+2735,Diagnosed complications of pregnancy ...
+2736,"Other diseases genitourinary system, NEC"
+2800,"Carbuncle, furuncle, boil, cellulitis..."
+2805,Impetigo
+2810,Seborrheic dermatitis
+2815,"Eczema and dermatitis, NOS"
+2820,Psoriasis
+2825,Other diseases of the skin
+2900,Arthritis
+2905,Nonarticular rheumatism
+2910,Other musculoskeletal or connective t...
+2950,Congenital anomalies of heart and cir...
+2955,Undescended testicles
+2960,Other congenital anomalies
+2980,Prematurity
+2990,All perinatal conditions
+3100,General medical examination
+3105,Well baby examination
+3130,General psychiatric or psychological ...
+3200,"Pregnancy, unconfirmed"
+3205,"Prenatal examination, routine"
+3215,"Postpartum examination, routine"
+3220,Breast examination
+3225,Gynecological examination
+3230,Eye examination
+3235,Heart examination
+3240,Other special examination
+3300,Sensitization test
+3305,Skin immunity test
+3310,Glucose level determination
+3314,Human immunodeficiency virus (HIV) test
+3315,Other blood test
+3320,Blood pressure test
+3325,Urine test
+3330,Diagnostic endoscopies
+3335,Biopsies
+3340,"Mammography, xerography, breast therm..."
+3345,Diagnostic radiology
+3350,"EKG, ECG, electrocardiogram, treadmil..."
+3355,"EEG, electroencephalogram"
+3360,Hearing test
+3365,Pap smear
+3370,Other and unspecified diagnostic tests
+3400,Prophylactic inoculations
+3405,Exposure to venereal disease
+3408,Possible HIV
+3409,Exposure to human immunodeficiency vi...
+3410,Exposure to other infectious diseases
+3415,Exposure to bodily fluids of another person
+3500,"Family planning, NOS"
+3505,Contraceptive medication
+3510,Contraceptive device
+3515,Counseling and examinations for pregn...
+3520,Abortion to be performed (at this visit)
+3525,Sterilization to be performed (at thi...
+3530,Artificial insemination
+3535,Preconception Counseling and Education
+4100,Allergy medication
+4110,Injections
+4111,Noncompliance with medication therapy
+4115,"Medication, other and unspecified kinds"
+4200,Preoperative visit for spec/unspec ty...
+4205,Postoperative visit
+4400,Physical medicine and rehabilitation
+4401,Cardiopulmonary resuscitation
+4405,Respiratory therapy
+4410,Psychotherapy
+4415,Radiation therapy
+4420,Acupuncture
+4425,Chemotherapy
+4500,Tube insertion
+4505,"Cauterization, all sites"
+4507,"IV therapy, infusion"
+4510,Urinary tract instrumentation and cat...
+4515,Fitting glasses and contact lenses
+4518,Detoxification
+4520,Minor surgery
+4521,Major surgery
+4525,Kidney dialysis
+4529,Internal prosthetic device
+4530,"Extern prosthet dev, art body parts (..."
+4535,Corrective appliances
+4540,"Cast, splint - application, removal"
+4545,"Dressing, bandage - application, change"
+4550,"Irrigation, lavage"
+4555,"Suture - insertion, removal"
+4556,"Cosmetic injection, NOS"
+4560,Other specific therapeutic procedures...
+4565,Transplants
+4600,Diet and nutritional counseling
+4604,Human immunodeficiency virus (HIV) co...
+4605,"Counseling, NOS"
+4700,Economic problem
+4702,Problem with access to medical care
+4705,Marital problems
+4710,Parent-child problems
+4715,Other problems of family relationship
+4720,Educational problems
+4725,Occupational problems
+4730,Social adjustment problems
+4735,Legal problems
+4740,Other social problems
+4800,"Progress visit, NOS"
+5005,Head and face fractures and dislocations
+5010,Spinal column fractures and dislocations
+5015,"Trunk area, except spinal column, fra..."
+5020,Leg fractures and dislocations
+5025,Ankle fractures and dislocations
+5030,Foot and toe(s) fractures and disloca...
+5035,Arm fractures and dislocations
+5040,Wrist fractures and dislocations
+5045,Hand and finger(s) fractures and disl...
+5050,"Fractures and dislocations, other and..."
+5105,"Cervical spine, neck strains and sprains"
+5110,Back strains and sprains
+5115,Knee strains and sprains
+5120,Ankle strains and sprains
+5125,Wrist strains and sprains
+5130,"Sprain or strain, other and unspecified"
+5205,Head and neck area lacerations and cuts
+5210,Facial area lacerations and cuts
+5215,Trunk area lacerations and cuts
+5220,Lower extremity lacerations and cuts
+5225,Upper extremity lacerations and cuts
+5230,"Laceration and cuts, site unspecified"
+5305,"Head, neck and facial area puncture w..."
+5310,Trunk area puncture wounds
+5315,Lower extremity puncture wounds
+5320,Upper extremity puncture wounds
+5325,"Puncture wound, site unspecified"
+5405,"Head, neck, and face contusion, abras..."
+5410,"Eye contusion, abrasion, bruise"
+5415,"Trunk area contusion, abrasion, bruise"
+5420,"Lower extremity contusion, abrasion, ..."
+5425,"Upper extremity contusion, abrasion, ..."
+5430,"Contusion, abrasion, bruise, site uns..."
+5505,"Head, neck, and face injury, type uns..."
+5510,"Eye injury, type unpsecified"
+5515,"Back injury, type unspecified"
+5520,"Chest and abdomen injury, type unspec..."
+5525,"Hip injury, type unspecified"
+5530,"Leg injury, type unspecified"
+5535,"Knee injury, type unspecified"
+5540,"Ankle injury, type unspecified"
+5545,"Foot and toe(s) injury, type unspecified"
+5550,"Shoulder injury, type unspecified"
+5555,"Arm injury, type unspecified"
+5560,"Elbow injury, type unspecified"
+5565,"Wrist injury, type unspecified"
+5570,"Hand and finger(s) injury, type unspe..."
+5575,"Injury, multiple or unspecified"
+5600,"Eye, foreign body"
+5605,"Nose, foreign body"
+5610,"Skin, foreign body"
+5615,"Digestive tract, foreign body"
+5616,"Respiratory tract, foreign body"
+5620,"Other and unspecified sites, foreign ..."
+5705,"Head, neck, and face burns, all degrees"
+5710,Trunk area burns
+5715,Extremities burns
+5720,"Burn, site unspecified"
+5750,"Sunburn, windburn"
+5755,Insect bites
+5760,"Animal, human bite"
+5800,Late effects of an old injury
+5805,"Motor vehicle accident, type of injur..."
+5810,"Accident, NOS"
+5815,"Violence, NOS"
+5818,Intentional self-mutilation
+5820,Suicide attempt
+5830,Rape
+5835,Dead on arrival (DOA)
+5836,Respiratory arrest
+5837,Cardiac arrest
+5838,Drowning
+5839,Cardiopulmonary arrest
+5840,Unconscious on arrival
+5841,State of consciousness not specified
+5842,Altered level of consciousness
+5900,Accidental poisoning
+5905,Adverse effect of medication
+5910,Adverse effect of drug abuse
+5915,Adverse effect of alcohol
+5920,Adverse effects of environment
+5921,Adverse effects of secondhand smoke
+5922,Adverse effects of terrorism and bio..
+5925,"Adverse effects, other and unspecified"
+5930,Surgical Complications due to any imp...
+6100,For results of blood glucose tests
+6105,For results of cholesterol and trigly...
+6106,For results of test for human immunod...
+6110,For other findings of blood tests
+6200,For results of urine tests
+6300,For cytology findings
+6400,For radiological findings
+6500,For results of EKG
+6600,For results of skin tests
+6700,For other and unspecified test results
+7100,Physical examination required for sch...
+7120,Driver's license examination
+7125,Insurance examination
+7130,Disability examination
+7131,Worker's Compensation examination
+7135,Premarital examination
+7137,Direct admission to hospital
+7140,Oth reas for visit requir by party ot...
+8990,"Problems, complaints, NEC"
+8991,Patient unable to speak English
+8993,Patient (or spokesperson) refused care
+8997,Entry of 'none' or 'no complaint'
+8998,Inadequate data base
+8999,Illegible entry
