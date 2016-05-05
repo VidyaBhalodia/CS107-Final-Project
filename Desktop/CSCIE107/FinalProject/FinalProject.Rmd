@@ -1,0 +1,827 @@
+---
+title: "CS107 Final Project"
+author: "Vidya Bhalodia"
+date: "April 14, 2016"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r, echo=FALSE}
+# load libraries as needed
+library(dplyr)
+library(ggplot2)
+library(broom)
+library(lpSolve)
+library(caret)
+library(lubridate)
+library(tidyr)
+library(icd)
+library(knitr)
+library(data.table)
+```
+
+
+```{r, echo=FALSE}
+# read in data.
+ER2006 = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/datacsv/nhamcsed2006.csv"))
+
+ER2007 = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/datacsv/nhamcsed2007.csv"))
+ER2008 = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/datacsv/nhamcsed2008.csv"))
+ER2009 = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/datacsv/nhamcsed2009.csv"))
+ER2010 = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/datacsv/nhamcsed2010.csv"))
+ER2011 = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/datacsv/nhamcsed2011.csv"))
+```
+
+Emergency Rooms (ERs) fulfill an important healthcare role by providing services to patients in a wide-ranging variety of acute medical crises. Unfortunately, most models of healthcare economics view ERs as unprofitable, in some cases causing hospitals to curtail emergency services or even to eliminate the ER department entirely. In this project we would like to use the results of the National Hospital Ambulatory Medical Care Survey (NHAMCS) 2006 - 2011 data to look at the characteristics of patients who present to the ERs and the types of services they receive, as well as to identify any trends that may emerge. While the survey has been conducted since 2012, there have been significant changes to the data over time. To maintain consistency in analysis, we will only include data from 2007-2011 (as of april 2016, more recent data was not availabe.)
+
+```{r, echo=FALSE}
+# select variables of interest
+ER2011Select =  ER2011 %>% select(c(VMONTH, VDAYR, AGE, SEX, ETHUN, RACEUN, WAITTIME, LOV,  ARREMS, SEEN72, DISCH7DA, PASTVIS, ADMITHOS, PAYTYPER, RFV13D:RFV33D, DIAG13D, NUMMED, NOCHRON, TOTDIAG, TOTPROC, PATCODE, REGION, OWNER))
+ER2011Select$VYEAR = 2011
+
+ER2010Select =  ER2010 %>% select(c(VMONTH, VDAYR, AGE, SEX, ETHUN, RACEUN, WAITTIME, LOV, ARREMS, SEEN72, DISCH7DA, PASTVIS, ADMITHOS,PAYTYPER, RFV13D:RFV33D, DIAG13D, NUMMED, NOCHRON, TOTDIAG, TOTPROC, PATCODE, REGION, OWNER))
+ER2010Select$VYEAR = 2010
+
+ER2009Select =  ER2009 %>% select(c(VMONTH, VDAYR, AGE, SEX, ETHUN, RACEUN, WAITTIME, LOV, ARREMS, SEEN72, DISCH7DA, PASTVIS, ADMITHOS,PAYTYPER, RFV13D:RFV33D, DIAG13D, NUMMED, NOCHRON, TOTDIAG, TOTPROC, PATCODE, REGION, OWNER))
+ER2009Select$VYEAR = 2009
+
+ER2008Select =  ER2008 %>% select(c(VMONTH, VDAYR, AGE, SEX, ETHUN, RACEUN, WAITTIME, LOV, SEEN72, DISCH7DA, PASTVIS, ADMITHOS, PAYTYPER, RFV13D:RFV33D, DIAG13D, NUMMED, TOTDIAG, TOTPROC, PATCODE, REGION, OWNER))
+ER2008Select$VYEAR = 2008
+ER2008Select$ARREMS = ER2008Select$NOCHRON = -9
+
+ER2007Select =  ER2007 %>% select(c(VMONTH, VDAYR, AGE, SEX, ETHUN, RACEUN, WAITTIME, LOV, SEEN72, DISCH7DA, PASTVIS, ADMITHOS, PAYTYPER=PAYTYPE, RFV13D:RFV33D, DIAG13D, NUMMED, TOTDIAG, TOTPROC, PATCODE, REGION, OWNER))
+ER2007Select$VYEAR = 2007
+ER2007Select$ARREMS = ER2007Select$NOCHRON = -9
+
+combinedERSelect = rbind(ER2007Select, ER2008Select, ER2009Select, ER2010Select, ER2011Select)
+
+```
+
+
+Volume of Visits in the survey from 2007 - 2011. 
+
+```{r, echo=FALSE}
+
+RegionArray = data.frame(REGION = c(1,2,3,4), RegionName = c("Northeast","Midwest", "South", "West" ))
+
+VisitVolume = combinedERSelect %>% group_by(VYEAR, REGION) %>% summarize(NumberOfVisits = n()) %>% left_join(.,RegionArray) 
+ggplot(VisitVolume, aes(x = VYEAR, y = NumberOfVisits, fill = RegionName)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Year", y = "Number of ERs", fill = "Region", "Number of Visits by Year")
+```
+
+While it may seem that the number of ER visits surveyed dropped markedly in 2011 from 35k to 31k, overview of all the survey data in the series shows a high of 40k cases documented in 2003, to a low of ~21k in 1999. 
+
+# ER Ownership
+```{r, echo=FALSE}
+OwnershipCount = combinedERSelect %>% group_by(VYEAR, OWNER) %>% summarize(NumVisits = n())
+OwnerArray = data.frame(OWNER = c(1,2,3), OwnerCategory = c("Voluntary non-profit", "Government, non-Federal",  "Proprietary")) 
+OwnershipCount = OwnershipCount %>% left_join(., OwnerArray)
+
+ggplot(OwnershipCount, aes(x = VYEAR, y = NumVisits, fill=OwnerCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Year", y = "Number of Visits", fill = "ER Ownership Categories Over Time")
+```
+
+We can see that the vast majority of ER visits are consistently to volunteer/non-profit facilities.
+
+```{r, echo=FALSE}
+# translate to human readable
+RaceArray = data.frame(RACEUN = c(-9,1,2,3,4,5,6), RaceCategory = c("N/A", "White",  "Black/African American", "Asian", "Native Hawaiian/Pacific Island", "American Indian/Alaska Native", "Multiple Races")) 
+EthnicArray = data.frame(ETHUN = c(-9,1,2), EthnicCategory = c("N/A","Hispanic/Latino", "Non Hispanic "))
+SexArray = data.frame(SEX = c(1,2), SexCategory = c("Female", "Male"))
+
+```
+
+
+#Insurance
+```{r, echo=FALSE}
+
+# select, filter, & join (include PATCODE so we can always recombine later if we want)
+combinedERDemographics = combinedERSelect %>% select(VYEAR, RACEUN, ETHUN, SEX, AGE, PAYTYPER, PATCODE) %>% left_join(., RaceArray) %>% left_join(., EthnicArray) %>% left_join(., SexArray)
+
+InsuranceArray = data.frame(PAYTYPER = c(-9, -8, 1,2,3,4,5,6,7), PayerCategory = c("N/A", "Unknown", "Private Insurance", "Medicare", "Medicaid/CHIP", "Worker's Compensation", "Self-Pay", "No charge/Charity", "Other" ))
+
+insuranceSummary = combinedERDemographics %>% group_by(PAYTYPER, SEX) %>% summarize(NumVisits = n()) %>% left_join(., InsuranceArray ) %>% left_join(., SexArray)
+
+ggplot(insuranceSummary, aes(x = PayerCategory, y = NumVisits, fill=SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Payer Type", y = "Number of Visits", fill = "Gender", title = "Payer Type by Gender")+ theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+insuranceByYear = combinedERDemographics %>% group_by(VYEAR, PAYTYPER) %>% summarize(NumVisits = n()) %>% left_join(., InsuranceArray ) 
+
+ggplot(insuranceByYear, aes(x = VYEAR, y = NumVisits, fill=PayerCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Year", y = "Number of Visits", fill = "Payer Category", title = "Insurance Providers by Year") + facet_wrap(~PayerCategory)+ theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+More women than men in the ER had Medicare, Medicaid/CHIP, or Private Insurance. More men than women had Worker's Compensation or were paying out of pocket (Self-Pay). 
+
+
+#Gender 
+```{r, echo=FALSE}
+
+genderSummary = combinedERDemographics %>% group_by(SexCategory) %>% summarize(NumVisits = n(), PercentVisits =  round(100*n()/length(combinedERDemographics$SEX)))
+genderSummary
+# by central limit theorem, we can say that the mean fraction of ER patients that are women is : 0.54
+# the standard deviation = sqrt(p*(1-p)/n)
+
+genderMu = 0.508
+genderSigma = sqrt(genderMu * (1-genderMu)/ length(combinedERDemographics$SEX))
+genderZscore = (0.54 - genderMu)/genderSigma
+
+```
+
+The US census reports that the population is 50.8% women. Women were more likely than men to visit the ER (54%) Using the central limit theorem, mu = 0.508, sd = sqrt(p*(1-p)/n), giving us a Zscore of 29-sigma. It's safe to say that this finding is significant based on our data. This finding has been corroborated by other studies :
+"http://www.cdc.gov/nchs/data/nhsr/nhsr090.pdf"
+
+
+#Race and Ethnicity
+We will look at the race and ethnicity of patients presenting to the ER. For the purposes of this analysis, we will exclude the 9% of patients who chose to have both race and ethnicity defined as N/A. 
+```{r, echo=FALSE}
+demographicSummaryNonHispanic = combinedERDemographics %>% filter(EthnicCategory != "Hispanic/Latino" &  RaceCategory != "N/A") %>% group_by(RaceCategory, SexCategory) %>% summarize(NumVisits = n(), PercentVisits =  n()/length(combinedERDemographics$RACEUN))
+
+demographicSummaryHispanic = combinedERDemographics %>% filter(EthnicCategory == "Hispanic/Latino") %>% group_by(SexCategory) %>% summarize(NumVisits = n(), PercentVisits = n()/length(combinedERDemographics$RACEUN))
+
+demographicSummary = rbind(demographicSummaryNonHispanic, cbind(RaceCategory = "Hispanic/Latino", demographicSummaryHispanic))
+
+ggplot(demographicSummary, aes(x = RaceCategory, y = NumVisits, fill=SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Race / Ethnicity", y = "Number of Visits", fill = "Gender", title = "Race and Gender in ER Utilization")+ theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+# now look at utilization by race compared to population demographics
+demographicSummaryNonHispanic2 = combinedERDemographics %>% filter(EthnicCategory != "Hispanic/Latino" & RaceCategory != "N/A") %>% group_by(RaceCategory) %>% summarize(NumVisits = n(), PercentVisits =  100*n()/length(combinedERDemographics$RACEUN))
+
+demographicSummaryHispanic2 = combinedERDemographics %>% filter(EthnicCategory == "Hispanic/Latino")  %>% summarize(NumVisits = n(), PercentVisits =100*n()/length(combinedERDemographics$RACEUN))
+
+demographicSummary2 = rbind(demographicSummaryNonHispanic2, cbind(RaceCategory = "Hispanic/Latino", demographicSummaryHispanic2))
+
+# courtesy of census.gov
+censusRaceEthnic = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/censusRaceEthnic.csv"))
+demographicSummary2 = demographicSummary2 %>% left_join(.,censusRaceEthnic)
+
+
+numpatients = sum(demographicSummary2$NumVisits)
+demographicSummary2$Zscore = (demographicSummary2$PercentVisits - demographicSummary2$PopulationPercentage)/sqrt(demographicSummary2$PopulationPercentage * (100 - demographicSummary2$PopulationPercentage)/numpatients)
+demographicSummary2 %>% kable
+
+```
+
+Globally we can see that Blacks/African Americans are close to 2x as likely to visit the ER than other races, while Caucasian(White) and Asians are less likely. Though these findings are significant, they are is confounded by the large percentage of patients in this survey who chose not to identify their race and/or ethnicity (not shown).  
+
+Across all races/ethnicities, more women than men tended to use ER services. While there have been a number of studies performed on race and ethnicity based utilization of the ER, far less work has been done on gender related differences. In our further analyses, we will take closer looks at how ER services are utilized by gender. 
+
+
+#Age 
+```{r, echo=FALSE}
+ageSummary = combinedERDemographics %>% group_by(AGE, SEX) %>% summarize(NumVisits = n()) %>% left_join(., SexArray)
+ggplot(ageSummary, aes(x = AGE, y = NumVisits, fill=SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Year", y = "Number of Visits", fill = "Gender", title = "ER visits by Gender and Age")
+```
+
+Unsurprisingly, young children make up a large fraction of emergency room visits due to their susceptibility to illness and propensity for injury. What I find surprising is that there is such a dramatic difference in ER utilization in women vs men from ages 19 - 50.  The discrepancy in ER utilization in the oldest age ranges (>70) is probably due to the difference in longevity between men and women (more elderly women tend to use the ER than elderly men in this in part because women simply make up a significantly larger fraction of the population at those ages).
+
+
+#Diagnosis and Primary Complaints
+```{r, echo=FALSE}
+# only include diagnoses where atleast 1000 patients were seen for them.
+combinedERDiagnosis = combinedERSelect %>% select(VYEAR, SEX, AGE, DIAG13D , PATCODE) %>% group_by(DIAG13D) %>% summarize(NumVisits = n()) %>% filter(NumVisits >= 1000 & DIAG13D != -9)
+
+# I am grateful that someone kindly generated a library to handle ICD9 functions (doing it by hand would STINK) BUT, due to the absolutely kookie way the ICD libary handles unresolved codes (throwing a warning and skipping them), it's hard to merge code with description. UGH. 
+
+#separate out the numeric codes that can be comfortably translated using the ICD library
+nonVcode = combinedERDiagnosis[grep('[0-9][0-9][0-9]', combinedERDiagnosis$DIAG13D),]
+nonVcode$describeDiagnosis = icd_explain(nonVcode$DIAG13D, brief = TRUE)
+
+#manually mangle the Vcode (thank goodness there is only one)
+vCode = combinedERDiagnosis[grep('V', combinedERDiagnosis$DIAG13D),]
+diagnosisSummary = rbind(nonVcode, cbind(vCode, describeDiagnosis = "Unspecified transport accident")) 
+
+head(select(diagnosisSummary[order(-diagnosisSummary$NumVisits),], c(describeDiagnosis,NumVisits)))%>% kable
+
+```
+
+It looks like the top 5 reasons for visiting the ER are : "trouble breathing", "not feeling good", "abdominal / tummy problems", "vehicular accident", "back problems", "pus and infection".
+
+The diagnosis codes that physicians use when billing weren't as useful to understanding patient visits as I'd hoped. I'm going to look at "reasons for visit" which represents what the patient reports as their complaint when coming to the emergency room.
+
+# Chief Complaint 
+Now we are looking at the patient's chief complaints when they come to the ER. There are literally hundreds of general reasons (and thousands of specific ones) to  visit the ER - we will keep things simple and restrict it to reasons that each make up 2% (or more) of total ER visits
+
+```{r, echo=FALSE}
+RFVArray = tbl_df(read.csv("C:/Users/VidyaBhalodia/Desktop/CSCIE107/FinalProject/rfv3df.csv"))
+combinedERComplaint = combinedERSelect %>% select(VYEAR, SEX, AGE, RFV13D) %>% group_by(RFV13D) %>% summarize(NumVisits = n()) %>% left_join(., RFVArray) 
+
+# let's look at the distribution of diagnoses for ER visits
+
+combinedERComplaint = combinedERComplaint[order(-combinedERComplaint$NumVisits),]
+combinedERComplaint$frequencyRank = 1:nrow(combinedERComplaint)
+
+ggplot(combinedERComplaint, aes(x = frequencyRank, y = NumVisits)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Most Common to Least Common Complaints", y = "Number of Visits", title = "Distribution of Chief Complaints")
+```
+
+As you can see, a very small number of complaints make up the vast majority of ER visits, while the long tail tells us that a lot chief complaints in the ER are rare (appearing only once or twice). Now let's take a look at the gender distribution of the top 10 complaints
+
+```{r, echo=FALSE}
+# identify top 10 global complaints
+combinedERcomplaintTop = head(combinedERComplaint, 10)
+combinedERcomplaintTop %>% kable
+
+combinedERComplaintGender = combinedERSelect %>% select(VYEAR, SEX, AGE, RFV13D, PATCODE) %>% group_by(RFV13D,SEX) %>%  summarize(NumVisitsByGender = n()) %>% left_join(., RFVArray) %>% left_join(.,SexArray) %>% left_join(.,combinedERcomplaintTop) 
+
+ggplot(filter(combinedERComplaintGender, !is.na(frequencyRank)), 
+       aes(x = RFV.description, y = NumVisitsByGender, fill=SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Reason for Visit", y = "Number of Visits", fill = "Gender", title = "Top 10 Chief Complaints by Gender") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+```
+
+Now let's look at the top 10 reasons for women to visit the ER
+```{r, echo=FALSE}
+#filter by females, then sort and print the top 10 
+
+combinedERComplaintWomen = combinedERComplaintGender %>% filter(SEX == 1) 
+combinedERComplaintWomenTop10 = combinedERComplaintWomen[order(-combinedERComplaintWomen$NumVisitsByGender),] %>% head(.,10)
+
+#plot
+
+ggplot(combinedERComplaintWomenTop10, 
+       aes(x = RFV.description, y = NumVisitsByGender)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Reason for Visit", y = "Number of Visits", title = "Top 10 Chief Complaints for Women") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+```
+
+
+Now let's look at the top 10 reasons for men to visit the ER
+```{r, echo=FALSE}
+
+#filter by males, then sort and print the top 10 
+combinedERComplaintMen = combinedERComplaintGender %>% filter(SEX == 2) 
+combinedERComplaintMenTop10 = combinedERComplaintMen[order(-combinedERComplaintMen$NumVisitsByGender),] %>% head(.,10)
+
+#plot
+
+ggplot(combinedERComplaintMenTop10, 
+       aes(x = RFV.description, y = NumVisitsByGender)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Reason for Visit", y = "Number of Visits", title = "Top 10 Chief Complaints for Males") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+```
+
+When looking at female specific complaints, it's no surprise that problems of pregnancy are one of the top 10 reasons for ER visits (obviously this would not be a health issue that affects males). For males, cuts/injuries to the upper extremities (arms/shoulders) is on the top 10 list, while it ranks 46th in reasons for women.
+
+
+#Race / Ethnicity and Chief Complaint
+```{r, echo=FALSE}
+
+combinedERComplaintRace = combinedERSelect %>% select(VYEAR, SEX, AGE, RFV13D, ETHUN, RACEUN) %>% group_by(RFV13D,RACEUN) %>%  summarize(NumVisitsByRace = n()) %>% left_join(., RFVArray) %>% left_join(.,combinedERcomplaintTop)  %>% left_join(., RaceArray) 
+
+ggplot(filter(combinedERComplaintRace, !is.na(frequencyRank)), 
+       aes(x = RFV.description, y = NumVisitsByRace, fill=RaceCategory)) +
+    geom_bar(stat='identity', position="dodge") + scale_y_log10()+ labs(x = "Reason for Visit", y = "Number of Visits", fill = "Race", title = "Top 10 Chief Complaints by Race") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+combinedERComplaintWhite = combinedERComplaintRace %>% filter(RACEUN == 1) %>% select(RFV.description, NumVisitsByRaceEthn=NumVisitsByRace, RaceEthn = RaceCategory)
+combinedERComplaintWhite$percentVisits = combinedERComplaintWhite$NumVisitsByRaceEthn/sum(combinedERComplaintWhite$NumVisitsByRaceEthn)
+combinedERComplaintWhite10 = combinedERComplaintWhite[order(-combinedERComplaintWhite$NumVisitsByRace),] %>% head(.,10)
+
+
+combinedERComplaintBlack = combinedERComplaintRace %>% filter(RACEUN == 2)%>% select(RFV.description, NumVisitsByRaceEthn=NumVisitsByRace, RaceEthn = RaceCategory) 
+combinedERComplaintBlack$percentVisits = combinedERComplaintBlack$NumVisitsByRaceEthn/sum(combinedERComplaintBlack$NumVisitsByRaceEthn)
+combinedERComplaintBlack10 = combinedERComplaintBlack[order(-combinedERComplaintBlack$NumVisitsByRaceEthn),] %>% head(.,10)
+
+
+combinedERComplaintAsian = combinedERComplaintRace %>% filter(RACEUN == 3)%>% select(RFV.description, NumVisitsByRaceEthn=NumVisitsByRace, RaceEthn = RaceCategory)
+combinedERComplaintAsian$percentVisits = combinedERComplaintAsian$NumVisitsByRaceEthn/sum(combinedERComplaintAsian$NumVisitsByRaceEthn)
+combinedERComplaintAsian10 = combinedERComplaintAsian[order(-combinedERComplaintAsian$NumVisitsByRace),] %>% head(.,10)
+
+combinedERComplaintEthnic = combinedERSelect %>% select(VYEAR, SEX, AGE, RFV13D, ETHUN, RACEUN) %>% group_by(RFV13D,ETHUN) %>%  summarize(NumVisitsByHispanic = n()) %>% left_join(., RFVArray) %>% left_join(.,combinedERcomplaintTop)  %>% left_join(., EthnicArray) 
+
+ggplot(filter(combinedERComplaintEthnic, !is.na(frequencyRank)), 
+       aes(x = RFV.description, y = NumVisitsByHispanic, fill=EthnicCategory)) +
+    geom_bar(stat='identity', position="dodge") + scale_y_log10()+ labs(x = "Reason for Visit", y = "Number of Visits", fill = "Ethnicity", title = "Top 10 Chief Complaints by Race") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+combinedERComplaintHispanic = combinedERComplaintEthnic %>% filter(ETHUN == 1)%>% select(RFV.description, NumVisitsByRaceEthn = NumVisitsByHispanic, RaceEthn = EthnicCategory) 
+combinedERComplaintHispanic$percentVisits = combinedERComplaintHispanic$NumVisitsByRaceEthn/sum(combinedERComplaintHispanic$NumVisitsByRaceEthn)
+combinedERComplaintHispanic10 = combinedERComplaintHispanic[order(-combinedERComplaintHispanic$NumVisitsByRaceEthn),] %>% head(.,10)
+
+Top10ComplaintsByEthRace = rbind(combinedERComplaintWhite10,combinedERComplaintBlack10, combinedERComplaintAsian10, combinedERComplaintHispanic10) 
+Top10ComplaintsByEthRace %>% ungroup() %>% select(c(RFV.description, RaceEthn, percentVisits)) %>% spread(., RaceEthn, percentVisits ) %>% kable
+
+ggplot(Top10ComplaintsByEthRace, 
+       aes(x = RFV.description, y = percentVisits, fill=RaceEthn)) +
+    geom_bar(stat='identity', position="dodge")+ labs(x = "Reason for Visit", y = "% Visits", fill = "Race/Ethnicity", title = "Top 10 Chief Complaints by Race/Ethnicity") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+```
+
+So based on this, it looks like patients of different racial groups are more/less likely to present to the ER with certain complaints. For example, Hispanics are more likely to present to the ER with ear complaints or skin rashes, while Whites are less likely to present to the ER with pregnancy related problems.
+
+#Relationships between Age and Gender and Diagnoses.
+Earlier we saw that the ratio between female and male ER patients changed as function of age. Now we want to see how the diagnoses change with age and gender. We will limit the analyses to the top 12 most common complaints (as defined by the join of top 10 for females, males and combined)
+
+```{r, echo=FALSE}
+TopComplaintList = full_join(select(combinedERComplaintMenTop10,c(RFV13D,topComplaint = RFV.description)), select(combinedERComplaintWomenTop10,c(RFV13D,topComplaint = RFV.description)))
+
+combinedERComplaintGenderAge = combinedERSelect %>% select(VYEAR, SEX, AGE, RFV13D, PATCODE) %>% group_by(RFV13D, AgeCategory = floor(AGE/5), SEX) %>% summarize(NumVisits = n()) %>% left_join(., RFVArray) %>% left_join(., SexArray) %>% left_join(.,TopComplaintList)
+
+combinedERComplaintGenderAge$AgeRange = paste(as.character(combinedERComplaintGenderAge$AgeCategory*5),"-",as.character((1+combinedERComplaintGenderAge$AgeCategory)*5))
+
+ggplot(
+  combinedERComplaintGenderAge, aes(x = AgeCategory, y = NumVisits, fill=SEX)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Patient Age", y = "Number of Visits", fill = "Gender", title = "ER Visits by Age and Top 12 Diagnoses") + facet_wrap(~topComplaint)+ theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+#Most Frequent Complaints for By Gender and Age Range. 
+
+```{r, echo=FALSE}
+
+ERComplaintGenderAgeTopF = combinedERComplaintGenderAge %>% ungroup() %>% filter(SEX == 1) %>% group_by(AgeCategory) %>% summarize(TopCategoryAge = max(NumVisits))
+
+ERComplaintGenderAgeFemale = combinedERComplaintGenderAge %>% left_join(.,ERComplaintGenderAgeTopF)  %>% filter(TopCategoryAge == NumVisits)%>% ungroup()
+
+ERComplaintGenderAgeTopM = combinedERComplaintGenderAge %>% ungroup() %>% filter(SEX == 2) %>% group_by(AgeCategory) %>% summarize(TopCategoryAge = max(NumVisits))
+
+ERComplaintGenderAgeMale = combinedERComplaintGenderAge %>% left_join(.,ERComplaintGenderAgeTopM)  %>% filter(TopCategoryAge == NumVisits) %>% ungroup()
+
+ERComplainGenderAge = rbind(ERComplaintGenderAgeFemale,ERComplaintGenderAgeMale ) 
+ERComplainGenderAgeSpread = ERComplainGenderAge %>% select(c(AgeCategory, RFV.description, AgeRange, SexCategory, NumVisits)) %>% spread(., SexCategory, NumVisits) 
+
+
+ERComplainGenderAgeSpread%>% kable
+```
+
+It looks like in the youngest of children (younger than 10 years of age), fever is the most common reason for ER visits and there is no gender discrepancy. As the patients get older (10-35 years), stomach and abdominal pain seem to be the most common reasons for both males and females, but women outnumber men by as much as 3-1. After age 35, men's most frequent complaint is chest-pain, while women's most frequent complaint continues to be stomach and abdominal pain. After age 55, both women and men's most common complaint is chest pain. After age 80, shortness of breath and chest-pain continue to be the most common complaints, but as the patients get older, there are a lot fewer patients and a lot of varying complaints tie for first place, reducing reliability of the data.
+
+
+#Arriving the ER via EMS 
+Now we want to look at the experience surrounding patients coming to the ER and the services they get there.
+Let's look at the fraction of patients who arrive by ambulance.
+```{r, echo=FALSE}
+EMSArray = data.frame(ARREMS = c(-9, -8, 1,2), EMSCategory = c("N/A", "Unknown", "Yes", "No"))
+combinedERVisitStats = combinedERSelect %>% select(VYEAR, ETHUN, SEX, AGE, ARREMS, WAITTIME, LOV, SEEN72, RFV13D, PASTVIS, NUMMED, TOTDIAG, TOTPROC, PATCODE) %>%  left_join(.,EMSArray) %>% left_join(., EthnicArray) %>% left_join(., SexArray) %>% left_join(.,RFVArray) %>% left_join(.,TopComplaintList)
+
+ERAmbulanceAge = combinedERVisitStats %>% filter(ARREMS > 0) %>% group_by(EMSCategory, AGE) %>% summarize(NumVisitsEMS = n())
+
+
+ggplot(
+  ERAmbulanceAge, aes(x = AGE, y = NumVisitsEMS, fill=EMSCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Patient Age", y = "Number of Visits", fill = "Arrived By EMS", title = "Arrival By Ambulance") + theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+ERAmbulanceSex = combinedERVisitStats %>% filter(ARREMS > 0) %>% group_by(EMSCategory, SexCategory) %>% summarize(NumVisitsEMS = n())
+
+ggplot(
+  ERAmbulanceSex, aes(x = SexCategory, y = NumVisitsEMS, fill=EMSCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Patient Gender", y = "Number of Visits", fill = "Arrived By EMS", title = "Arrival By Ambulance") + theme(axis.text.x = element_text(angle = 30, hjust = 1))
+
+
+```
+
+The total number of patients under 18 who arrive in the ER via ambulance is fairly small - one would presume that the vast majority of situations, the child could be transported by parents or other supervisory adult. The number of adults is fairly constant for most ages, however age increases, the fraction of patients who arrive via EMS increases - by age 80, more patients arrive in the ER via ambulance rather not. The relative fraction of females who arrived via EMS was very slightly lower (1:6 vs 1:5.6) in females than in males. 
+
+
+Next we will look at the most common diagnoses and the gender distribution of patients who arrive via EMS. We will limit the list to categories where >100 visits of
+
+```{r, echo=FALSE}
+ERAmbulanceDiagnoses = combinedERVisitStats %>% filter(ARREMS == 1) %>% group_by(RFV.description) %>% summarize(NumVisitsEMS = n()) 
+
+EMSDiagnosisList = filter(ERAmbulanceDiagnoses, NumVisitsEMS > 100)$RFV.description
+
+ERAmbulanceDiagnosesGender = combinedERVisitStats %>% filter(ARREMS == 1) %>% group_by(RFV.description, SexCategory) %>% summarize(NumVisitsEMS = n()) 
+
+
+ggplot(
+  filter(ERAmbulanceDiagnosesGender, RFV.description %in% EMSDiagnosisList), aes(x = RFV.description, y = NumVisitsEMS, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Diagnosis", y = "Number of Visits", fill = "Gender", title = "Gender and Diagnoses of Patients who Arrived By Ambulance") + theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+Overall more women than men were brought in via ambulance - consistent with more women than men utilizing the ER in general. However, for many but not all common diagnoses - specifically for complaints involving alcohol use, violence, convulsions/seizures,  unconsciousness, and lacerations/injuries, men were more likely than women to arrive via ambulance. 
+
+Let's compare the fraction of patients of each gender who are brought in by ambulance.
+```{r, echo=FALSE}
+ERAmbulanceDiagnosesGenderPercent = ERAmbulanceDiagnosesGender %>% left_join(., select(combinedERComplaintGender, c(SexCategory, NumVisitsByGender, RFV.description)))
+
+ERAmbulanceDiagnosesGenderPercent$PercentByEMS = ERAmbulanceDiagnosesGenderPercent$NumVisitsEMS / ERAmbulanceDiagnosesGenderPercent$NumVisitsByGender
+
+ggplot(
+  filter(ERAmbulanceDiagnosesGenderPercent, RFV.description %in% EMSDiagnosisList), aes(x = RFV.description, y = PercentByEMS, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Diagnosis", y = "% Visits by EMS", fill = "Gender", title = "Gender and Diagnoses of Patients who Arrived By Ambulance") + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+It looks like the fraction of patients who were brought in by EMS is pretty consistent across diagnoses - the exceptions seem to be violence and alcohol related issues.
+
+```{r, echo=FALSE}
+ERAmbulanceDiagnosesGenderPercent = ERAmbulanceDiagnosesGender %>% left_join(., select(combinedERComplaintGender, c(SexCategory, NumVisitsByGender, RFV.description)))
+
+ERAmbulanceDiagnosesGenderPercent$PercentByEMS = ERAmbulanceDiagnosesGenderPercent$NumVisitsEMS / ERAmbulanceDiagnosesGenderPercent$NumVisitsByGender
+
+ggplot(
+  filter(ERAmbulanceDiagnosesGenderPercent, RFV.description %in% EMSDiagnosisList), aes(x = RFV.description, y = PercentByEMS, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Diagnosis", y = "% Visits by EMS", fill = "Gender", title = "Gender and Diagnoses of Patients who Arrived By Ambulance") + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+#Wait times and Length of Visit. 
+
+For the purposes of our analyses, we are going to choose the top 12 most common diagnoses for adult men/women (age > 18) and look at the wait times / length of visit times involved. 
+
+#Wait Time
+```{r, echo=FALSE}
+combinedERTime = combinedERVisitStats %>% filter(AGE >= 18 & VYEAR >= 2010 & WAITTIME >0 & LOV >0 & !is.na(topComplaint))
+
+AdultCommonDiagnosisGender = combinedERTime %>% group_by(SexCategory) %>% summarize(NumVisitsGender = n()) 
+
+combinedERTimeGender = combinedERTime %>% group_by(WaitTimeRange = 5*ceiling(WAITTIME/5), SexCategory) %>% summarize(NumVisits = n()) %>% left_join(.,AdultCommonDiagnosisGender)
+combinedERTimeGender$PercentVisits = combinedERTimeGender$NumVisits / combinedERTimeGender$NumVisitsGender
+
+ggplot(
+  combinedERTimeGender, aes(x = WaitTimeRange, y = PercentVisits, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Wait Time", y = "# Visits", fill = "Gender", title = "Wait Time") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+qplot(RFV.description, WAITTIME, data = combinedERTime, geom = c("jitter", "boxplot"), color = SexCategory) + labs(x = "Diagnosis", y = "Wait Time", color = "Gender", title = "Wait Time By Complaint") + scale_y_log10()+ theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+ERTimeGenderTTest <- matrix(ncol=2, nrow=length(TopComplaintList$topComplaint))
+i = 1
+for (x in TopComplaintList$topComplaint) {
+  ERTimeGenderTTest[i,1] = x
+  if(x != "Problems of pregnancy") {
+  x1 = combinedERTime %>% filter(RFV.description == x & SexCategory == "Male")
+  x2 = combinedERTime %>% filter(RFV.description == x & SexCategory == "Female")
+  ttest = t.test(x1$WAITTIME,x2$WAITTIME)
+  ERTimeGenderTTest[i,2] = ttest$p.value
+  }
+  i = i+1
+}
+ERTimeGenderTTest = data.frame(ERTimeGenderTTest)
+ERTimeGenderTTest = rename(ERTimeGenderTTest, RFV.description=X1, pValue=X2)
+
+combinedERNumWaitTimeStats = combinedERTime %>% group_by(RFV.description, SexCategory) %>% summarize(NumVisits = n(), MeanWait = mean(WAITTIME), StdDevWait = sd(WAITTIME), MedianWait = median(WAITTIME)) 
+
+combinedERNumWaitTimeStatsSpread = full_join( select(filter(combinedERNumWaitTimeStats, SexCategory == "Male"), c(MeanWaitMale = MeanWait, MedianWaitMale = MedianWait)),  select(filter(combinedERNumWaitTimeStats, SexCategory == "Female"), c(MeanWaitFemale = MeanWait, MedianWaitFemale = MedianWait)))
+combinedERNumWaitTimeStatsSpread = combinedERNumWaitTimeStatsSpread %>% left_join(.,ERTimeGenderTTest)
+
+combinedERNumWaitTimeStatsSpread %>% kable
+```
+
+We performed a 2 tailed t-test on wait times by gender for each symptom. The only complaint where there was a statistically difference between genders, was for back symptoms. The significance in this case may be mitigated by the fact that we were making multiple comparisons. 
+
+#Length of Visit
+```{r, echo=FALSE}
+combinedERLOVGender = combinedERTime %>% group_by(LOVRange = 5*ceiling(LOV/5), SexCategory) %>% summarize(NumVisits = n()) %>% left_join(.,AdultCommonDiagnosisGender)
+combinedERLOVGender$PercentVisits = combinedERLOVGender$NumVisits / combinedERLOVGender$NumVisitsGender
+
+ggplot(
+  combinedERLOVGender, aes(x = LOVRange, y = PercentVisits, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Length of Visit (minutes)", y = "% Visits", fill = "Gender", title = "Length of Visit") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+qplot(RFV.description, LOV, data = combinedERTime, geom = c("jitter", "boxplot"), color = SexCategory) + labs(x = "Diagnosis", y = "Length of Visit", color = "Gender", title = "Length of Visit By Complaint") + scale_y_log10() + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+ERLOVGenderTTest <- matrix(ncol=2, nrow=length(TopComplaintList$topComplaint))
+i = 1
+for (x in TopComplaintList$topComplaint) {
+  ERLOVGenderTTest[i,1] = x
+  if(x != "Problems of pregnancy") {
+  x1 = combinedERTime %>% filter(RFV.description == x & SexCategory == "Male")
+  x2 = combinedERTime %>% filter(RFV.description == x & SexCategory == "Female")
+  ttest = t.test(x1$LOV,x2$LOV)
+  ERLOVGenderTTest[i,2] = ttest$p.value
+  }
+  i = i+1
+}
+ERLOVGenderTTest = data.frame(ERLOVGenderTTest)
+ERLOVGenderTTest = rename(ERLOVGenderTTest, RFV.description=X1, pValue=X2)
+
+combinedERNumLOVStats = combinedERTime %>% group_by(RFV.description, SexCategory) %>% summarize(NumVisits = n(), MeanLOV = mean(LOV), StdDevLOV = sd(LOV), MedianLOV = median(LOV)) 
+
+combinedERNumLOVStatsSpread = full_join( select(filter(combinedERNumLOVStats, SexCategory == "Male"), c(MeanLOVtMale = MeanLOV, MedianLOVMale = MedianLOV)),  select(filter(combinedERNumLOVStats, SexCategory == "Female"), c(MeanLOVFemale = MeanLOV, MedianLOVFemale = MedianLOV)))
+combinedERNumLOVStatsSpread = combinedERNumLOVStatsSpread %>% left_join(.,ERLOVGenderTTest)
+
+combinedERNumLOVStatsSpread %>% kable
+
+```
+
+Aside from patients presenting with back symptoms where females tended to have longer visits than males, there does not seem to be any systematic or statistically significant gender-based differences in length of visit times for ER patients. 
+
+# Number of Medications Administered
+```{r, echo=FALSE}
+combinedERNumMeds = combinedERTime %>% group_by(NUMMED, SexCategory) %>% summarize(NumVisits = n()) %>% left_join(.,AdultCommonDiagnosisGender)
+combinedERNumMeds$PercentVisits = combinedERNumMeds$NumVisits / combinedERNumMeds$NumVisitsGender
+
+ggplot(
+  combinedERNumMeds, aes(x = NUMMED, y = PercentVisits, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "# Medications Given in ER", y = "Number of Visits", fill = "Gender", title = "Medications Provided in the ER") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+qplot(RFV.description, NUMMED, data = combinedERTime, geom = c("jitter","boxplot"), color = SexCategory) + labs(x = "Diagnosis", y = "Number of Medications Administered", color = "Gender", title = "Medications Administered By Complaint") + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+combinedERNumLOVStats = combinedERTime %>% group_by(RFV.description, SexCategory) %>% summarize(NumVisits = n(), MeanLOV = mean(LOV), StdDevLOV = sd(LOV), MedianLOV = median(LOV)) 
+
+
+combinedERNumMedsStats = combinedERTime %>% group_by(RFV.description, SexCategory) %>% summarize(NumVisits = n(), MeanMeds= mean(NUMMED), MedianMeds = median(NUMMED)) 
+
+combinedERNumMedsStatsSpread = full_join( select(filter(combinedERNumMedsStats, SexCategory == "Male"), c(MeanMedstMale = MeanMeds, MedianMedsMale = MedianMeds)),  select(filter(combinedERNumMedsStats, SexCategory == "Female"), c(MeanMedsFemale = MeanMeds, MedianMedsFemale = MedianMeds)))
+
+
+combinedERNumMedsStatsSpread %>% kable
+```
+
+There does not seem to be any systematic gender-based differences in number of medications administered to ER patients. While some complaints (eg pregancy problems) had fewer medicines administered than others (shortness of breath), the high variability meant that none of these differences were statistically significant.
+
+# Number of Diagnostic Tests Performed
+```{r, echo=FALSE}
+combinedERDiagnostic = combinedERTime %>% filter(TOTDIAG >=0) %>% group_by(TOTDIAG, SexCategory) %>% summarize(NumVisits = n()) %>% left_join(.,AdultCommonDiagnosisGender)
+combinedERDiagnostic$PercentVisits = combinedERDiagnostic$NumVisits / combinedERDiagnostic$NumVisitsGender
+
+ggplot(
+  combinedERDiagnostic, aes(x = TOTDIAG, y = PercentVisits, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "# Diagnostic Procedures Performed in ER", y = "% of Visits", fill = "Gender", title = "Diagnostic Tests Performed in the ER") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+qplot(RFV.description, TOTDIAG, data = filter(combinedERTime, TOTDIAG >0), geom = c("boxplot", "jitter"), color = SexCategory) + labs(x = "Diagnosis", y = "Diagnostic Tests Performed", color = "Gender", title = "Diagnostic Procedures Performed By Complaint") + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+combinedERDiagStats = combinedERTime %>% filter(TOTDIAG >=0)  %>% group_by(RFV.description, SexCategory) %>% summarize(NumVisits = n(), MeanDiags= mean(TOTDIAG),  MedianDiags = median(TOTDIAG)) 
+
+combinedERDiagStatsSpread = full_join( select(filter(combinedERDiagStats, SexCategory == "Male"), c(MeanDiagstMale = MeanDiags, MedianDiagsMale = MedianDiags)),  select(filter(combinedERDiagStats, SexCategory == "Female"), c(MeanDiagsFemale = MeanDiags, MedianDiagsFemale = MedianDiags)))
+
+combinedERDiagStatsSpread %>% kable
+```
+
+There does not seem to be any systematic gender-based differences in number of diagnostic tests performed on ER patients. The one exception to this was women who presented with certain uncategorized pain symptoms - who had a median of 4 tests done, while men had a median of 2 tests performed. There were some differences in the average number of tests performed for certain complaints (eg average of 1 test for back pain, vs 6 for chest pain).
+
+# Procedures Performed 
+```{r, echo=FALSE}
+combinedERProcedure = combinedERTime %>% filter(TOTPROC >=0) %>% group_by(TOTPROC, SexCategory) %>% summarize(NumVisits = n()) %>% left_join(.,AdultCommonDiagnosisGender)
+combinedERProcedure$PercentVisits = combinedERProcedure$NumVisits / combinedERProcedure$NumVisitsGender
+
+ggplot(
+  combinedERProcedure, aes(x = TOTPROC, y = PercentVisits, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "#                        Diagnostic Procedures Performed in ER", y = "% of Visits", fill = "Gender", title = "Procedures Performed in the ER") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+qplot(RFV.description, TOTPROC, data = filter(combinedERTime, TOTPROC > 0), geom = c("jitter", "boxplot"), color = SexCategory) + labs(x = "Diagnosis", y = "Procedures Performed", color = "Gender", title = "Medications Administered By Complaint")  +  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+combinedERProcStats = combinedERTime %>% filter(TOTPROC >=0) %>% group_by(RFV.description, SexCategory) %>% summarize(NumVisits = n(), MeanProcs= mean(TOTPROC), MedianProcs = median(TOTPROC)) 
+
+combinedERProcStatsSpread = full_join( select(filter(combinedERProcStats, SexCategory == "Male"), c(MeanProcsMale = MeanProcs, MedianProcsMale = MedianProcs)),  select(filter(combinedERProcStats, SexCategory == "Female"), c(MeanProcsFemale = MeanProcs, MedianProcsFemale = MedianProcs)))
+
+combinedERProcStatsSpread %>% kable
+
+```
+
+There does not seem to be any systematic gender-based differences in number of procedures performed on ER patients. The one exception to this was women who presented with certain uncategorized pain symptoms - who had a median of 1 procedure performed, while men had a median of 0 procedures. 
+
+
+# LOV vs Number of Medications 
+Now we will look at the relationship between length of visit and various treatments in the ER (medicines administered, diagnostic tests run, procedures performed)
+```{r, echo=FALSE}
+
+# scatter plot by gender
+ggplot(
+  filter(combinedERTime, NUMMED >0), aes(x = NUMMED, y = LOV, color = SexCategory)) +
+    geom_point(size = 1) + labs(x = "Medications Administered", y = "Length of Visit", color = "Gender", title = "# Medicines Administered vs LOV") +  geom_smooth(method='lm',se = FALSE) + scale_y_log10()+ theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+#looks like there is a mild positive correlation
+
+# linear regression
+LOVNUMMEDfitF = combinedERTime %>% filter(SexCategory == "Female")  %>% lm(log(LOV) ~ NUMMED,.)
+summary(LOVNUMMEDfitF)
+LOVNUMMEDfitM = combinedERTime %>% filter(SexCategory == "Male") %>% lm(log(LOV) ~ NUMMED,.)
+summary(LOVNUMMEDfitM)
+```
+
+For both genders, each additional medication administered in the OR is correlated with an ~8% increase in length of visit. This correlation is statistically significant but weak - with an R^2 of only 0.04
+
+
+# LOV vs Number of Diagnostic Tests 
+```{r, echo=FALSE}
+
+# scatter plot by gender
+ggplot(
+  filter(combinedERTime, TOTDIAG >0), aes(x = TOTDIAG, y = LOV, color = SexCategory)) +
+    geom_point(size = 1) + labs(x = "Diagnostic Tests Performed", y = "Length of Visit", color = "Gender", title = "# Diagnostic Tests Performed vs LOV") +  geom_smooth(method='lm',se = FALSE) + scale_y_log10()+ theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+#looks like there is a mild positive correlation
+
+# linear regression
+LOVNUMMEDfitF = combinedERTime %>% filter(SexCategory == "Female")  %>% lm(log(LOV) ~ TOTDIAG,.)
+summary(LOVNUMMEDfitF)
+LOVNUMMEDfitM = combinedERTime %>% filter(SexCategory == "Male") %>% lm(log(LOV) ~ TOTDIAG,.)
+summary(LOVNUMMEDfitM)
+```
+
+For both genders, each additional diagnostic test performed in the ER is also correlated with an ~8% increase in length of visit. This correlation is much stronger - with an R^2 of .19
+
+# LOV vs Number of Diagnostic Tests 
+```{r, echo=FALSE}
+
+# scatter plot by gender
+ggplot(
+  filter(combinedERTime, TOTPROC >0), aes(x = TOTPROC, y = LOV, color = SexCategory)) +
+    geom_point(size = 1) + labs(x = "Procedures Performed", y = "Length of Visit", color = "Gender", title = "# Procedures Performed vs LOV") +  geom_smooth(method='lm',se = FALSE) + scale_y_log10()+ theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+#looks like there is a mild positive correlation
+
+# linear regression
+LOVNUMMEDfitF = combinedERTime %>% filter(SexCategory == "Female")  %>% lm(log(LOV) ~ TOTPROC,.)
+summary(LOVNUMMEDfitF)
+LOVNUMMEDfitM = combinedERTime %>% filter(SexCategory == "Male") %>% lm(log(LOV) ~ TOTPROC,.)
+summary(LOVNUMMEDfitM)
+```
+
+Surprisingly for either gender, an increase in number of procedures performed did affect predicted length of visit. 
+
+
+#Admission to Hospital from ER 
+
+Now we would like to get an overview of what happens to the patients after they leave the ER. Specifically, how many of them are admitted to the hospital - for each of our most common complaints ? Specifically are there any gender differences ?  
+
+#Gender and Diagnosis
+```{r, echo=FALSE}
+
+ERVisitStats = combinedERSelect %>% select(VYEAR, AGE, SEX, RFV13D, PATCODE, SEEN72, PASTVIS, ADMITHOS) 
+# total numbers of patients by gender and complaint
+CommonDiagnosisGenderComplaint = ERVisitStats %>% group_by(SEX, RFV13D) %>% summarize(NumVisitsGenderComplaint = n()) 
+
+# summarized and count. filter by top diagnoses and only look at hospital admissions 
+ERVisitStatGender = ERVisitStats%>% group_by(ADMITHOS, SEX, RFV13D) %>% summarize(NumVisits = n()) %>% left_join(., RFVArray) %>% left_join(.,SexArray) %>% left_join(.,CommonDiagnosisGenderComplaint) %>% left_join(.,TopComplaintList)%>% filter(!is.na(topComplaint) & ADMITHOS == 1)
+
+ERVisitStatGender$PercentVisits = ERVisitStatGender$NumVisits/ERVisitStatGender$NumVisitsGenderComplaint
+
+ggplot(
+  ERVisitStatGender, aes(x = RFV.description, y = PercentVisits, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "# Patients Admitted to Hospital", y = "% of Visits", fill = "Gender", title = "% of Patients Admitted to Hospital by Diagnosis") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+```
+
+Even though more women than men are typically seen in the ER for many of these complaints, for many symptoms, a larger fraction of men than women are admitted to the hospital. This difference is particularly dramatic looking at abdominal pain, head pain, and chest pain. 
+
+#Age and Diagnosis
+```{r, echo=FALSE}
+
+ERVisitStats = combinedERSelect %>% select(VYEAR, AGE, SEX, RFV13D, PATCODE, SEEN72, PASTVIS, ADMITHOS) 
+
+# total numbers of patients by gender and age
+CommonDiagnosisAgeGender = ERVisitStats %>% group_by(AGEGROUP = 5*floor(AGE/5), SEX) %>% summarize(NumVisitsAgeGender = n()) 
+
+# summarized and count. Only look at hospital admissions 
+ERVisitStatAgeGender = ERVisitStats%>% group_by(ADMITHOS, SEX, AGEGROUP = 5*floor(AGE/5)) %>% summarize(NumVisits = n()) %>%  left_join(.,SexArray) %>% left_join(.,CommonDiagnosisAgeGender) %>% filter(ADMITHOS == 1)
+
+ERVisitStatAgeGender$PercentVisits = ERVisitStatAgeGender$NumVisits/ERVisitStatAgeGender$NumVisitsAgeGender
+
+ggplot(
+  ERVisitStatAgeGender, aes(x = AGEGROUP, y = PercentVisits, fill = SexCategory)) +
+    geom_bar(stat='identity', position="dodge") + labs(x = "Age of Patients Admitted to Hospital", y = "% of Visits", fill = "Gender", title = "Hospital Admissions by Ages") + theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+```
+
+
+Several studies have shown that hospital admissions secondary to ER visits can boost ER profitability. So we want to create a model that can predict hospital admissions based on ER metrics. We will limit the chief complaint to the top 12 most common (as identified earlier). Our training set will include all the data we have analyzed so far from 2007-2011. Our testing data will be cases from 2006 (which were not used as part of our previous analyses). 
+
+```{r, echo=FALSE}
+RMSE <- function(vect1, vect2) {
+  if (length(vect1) == length(vect2)) {
+    outcome = sqrt(mean((vect1-vect2)^2))
+  }
+  else {
+    outcome = NA
+  }
+  return(outcome)
+}
+```
+
+# Building Predictive Models for Hospital Admissions
+```{r, echo=FALSE}
+# parse the data so it has what we want. 
+trainingData = combinedERSelect %>% filter(RFV13D %in% TopComplaintList$RFV13D) %>% left_join(.,TopComplaintList)%>%left_join(.,EthnicArray)%>%left_join(.,RaceArray)
+trainingData$AgeGroup = 5*round(trainingData$AGE / 5)
+
+trainingData$SEX[trainingData$SEX == 1] <- "Female"
+trainingData$SEX[trainingData$SEX == 2] <- "Male"
+
+ER2006Select = ER2006 %>% select(c(VMONTH, VDAYR, AGE, SEX, ETHUN = ETHNIC, RACEUN = RACE, WAITTIME, LOV, SEEN72, DISCH7DA, ADMITHOS, PAYTYPER=PAYTYPE, RFV13D:RFV33D, DIAG13D, NUMMED, TOTDIAG, TOTPROC, PATCODE, REGION, OWNER))
+ER2006Select$VYEAR = 2006
+ER2006Select$ARREMS = ER2006Select$NOCHRON = -9
+
+testData = ER2006Select %>% filter(RFV13D %in% TopComplaintList$RFV13D) %>% left_join(.,TopComplaintList)%>%left_join(.,EthnicArray)%>%left_join(.,RaceArray)
+testData$AgeGroup = 5*round(testData$AGE / 5)
+
+testData$SEX[testData$SEX == 1] <- "Female"
+testData$SEX[testData$SEX == 2] <- "Male"
+
+```
+
+Let's build a naive model first. We will predict that the probability of hospital admission for each patient is the same as the global probability of a patient being admitted.
+
+```{r, echo=FALSE}
+cat("The RMSE for a naive model is : ", RMSE(mean(trainingData$ADMITHOS), testData$ADMITHOS))
+```
+
+To build our first real model, we will perform a logistic regression. There is a lot of correlations amongst our variables, so we will start with a simple model first. 
+Admission is our binary output variable. Our input variables are gender (binary), age(continuous), and chief complaint. 
+For reasons of sanity, we will restrict our analyses (as we have in the past) to the top 12 most common complaint categories. 
+
+```{r, echo=FALSE}
+# build the model :
+fit1 <- glm(ADMITHOS ~ AGE + topComplaint + SEX, data = trainingData, family = binomial)
+
+# view the model
+summary.glm(fit1)$coefficients %>% kable
+```
+Based on this it looks like the most important factor is patient symptom. Male gender has a weak positive correlation with hospital admissions - an effect that we had observed in our exploratory analyses, while age has a very tiny positive contribution. 
+
+Now let us see how well this data predicts hospital admissions.
+```{r, echo=FALSE}
+
+# build the model :
+pred1 <- predict(fit1, newdata = testData, type = "response")
+pred1a <- predict(fit1, newdata = trainingData, type = "response")
+cat("Using a Logistic Regression model with 3 variables (age, gender, chief complaint), we get an RMSE of : ", RMSE(pred1, testData$ADMITHOS))
+```
+With this model, we a slight improvement over the naive model. The strongest factor is the chief complaint. 
+
+Now we will add age interaction factors to see if this improves our model
+```{r, echo=FALSE}
+# build the model :
+fit2 <- glm(ADMITHOS ~ AGE + topComplaint + SEX + AGE*SEX + AGE*topComplaint, data = trainingData, family = binomial)
+
+# build the model :
+pred2 <- predict(fit2, newdata = testData, type = "response")
+
+cat("Using a Logistic Regression model with 3 variables (age, gender, chief complaint) and age interactions, we get an RMSE of : ", RMSE(pred2, testData$ADMITHOS))
+```
+Well that didn't seem to help much. Maybe lets see if gender interacts with the other 2 variables 
+
+```{r, echo=FALSE}
+# build the model :
+fit3 <- glm(ADMITHOS ~ AGE + topComplaint + SEX + AGE*SEX + SEX*topComplaint, data = trainingData, family = binomial)
+
+# build the model :
+pred3 <- predict(fit3, newdata = testData, type = "response")
+
+cat("Using a Logistic Regression model with 3 variables (age, gender, chief complaint) and gender interactions, we get an RMSE of : ", RMSE(pred3, testData$ADMITHOS))
+``` 
+No improvement there either. Since adding interactions didn't help much, let's play around a few more ways - let's see what happens if we try to predict hospitalizations using only chief complaint.
+
+```{r, echo=FALSE}
+# build the model :
+fit4 <- glm(ADMITHOS ~ topComplaint, data = trainingData, family = binomial)
+
+# build the model :
+pred4 <- predict(fit4, newdata = testData, type = "response")
+
+cat("Using a Logistic Regression model with 1 variable (chief complaint), we get an RMSE of : ", RMSE(pred4, testData$ADMITHOS))
+``` 
+Well it's a little better than the naive model but worse than the 3 variable models. 
+
+Lets see if we get any significant improvement by adding ETHNICITY and RACE, and the #ofMeds, #ofTests & #ofProcedures to our model. 
+```{r, echo=FALSE}
+# build the model :
+fit5 <- glm(ADMITHOS ~ AGE + topComplaint + SEX + EthnicCategory + RaceCategory + NUMMED + TOTPROC + TOTDIAG, data = trainingData, family = binomial)
+
+# build the model :
+pred5 <- predict(fit5, newdata = testData, type = "response")
+pred5a <- predict(fit5, newdata = trainingData, type = "response")
+
+cat("Out of Sample RMSE for Logistic Regression model with 8 variables (age, gender, chief complaint, ethnicity, race, #med, #diagnostics, #procedures) : ", RMSE(pred5, testData$ADMITHOS), " for the test data")
+cat("In Sample RMSE for Logistic Regression model with 8 variables (age, gender, chief complaint, ethnicity, race, #med, #diagnostics, #procedures) : ", RMSE(pred5a, trainingData$ADMITHOS), " for the training data")
+``` 
+This model is overfit - it is better at predicting the training data than the test data.
+
+
+Finally lets see if we can predict whether a patient with a specific complaint (abdominal / stomach pain) will be admitted to the hospital. We will take our best model so far and remove the complaint variable from the model. Let's see how well it works :-)
+```{r, echo=FALSE}
+
+#naive model :
+cat("Using a naive model, we get an RMSE of : ", RMSE(mean(filter(trainingData, RFV13D == 1545)$ADMITHOS), filter(testData, RFV13D == 1545)$ADMITHOS), " for the test data")
+
+
+# build the model :
+fit6 <- glm(ADMITHOS ~ AGE + SEX, data = filter(trainingData,RFV13D == 1545), family = binomial)
+# make prediction :
+pred6 <- predict(fit6, newdata = filter(testData, RFV13D == 1545), type = "response")
+cat("Using a Logistic Regression model with 2 variables (age, gender), we get an RMSE of : ", RMSE(pred6, filter(testData, RFV13D == 1545)$ADMITHOS), " for the test data")
+
+
+# build the model :
+fit7 <- glm(ADMITHOS ~ AGE + SEX + RACEUN + ETHUN + NUMMED + TOTPROC + TOTDIAG, data = filter(trainingData,RFV13D == 1545), family = binomial)
+# make prediction :
+pred7 <- predict(fit7, newdata = filter(testData, RFV13D == 1545), type = "response")
+pred7a <- predict(fit7, newdata = filter(trainingData, RFV13D == 1545), type = "response")
+cat("Out-of-sample RMSE for Logistic Regression model with 7 variables (age, gender, race, ethnicity, meds, diagnostics, procedures) : ", RMSE(pred7, filter(testData, RFV13D == 1545)$ADMITHOS), " for the test data")
+cat("In-sample RMSE for Logistic Regression model with 7 variables (age, gender, race, ethnicity, meds, diagnostics, procedures) : ", RMSE(pred7a, filter(trainingData, RFV13D == 1545)$ADMITHOS), " for the test data")
+``` 
+For the most common complaint in adults (stomach / abdominal pain), it looks like a model based on age and gender give only a slight improvement over the naive model.  
+And if we include additional variables, our RMSE is worse than the naive model - it looks like we may be overfitting the data with this many variables. .
+
+Just to convince ourselves, let's try this one more time with another common complaint - fever.
+```{r, echo=FALSE}
+
+#naive model :
+cat("Using a naive model, we get an RMSE of : ", RMSE(mean(filter(trainingData, RFV13D == 1545)$ADMITHOS), filter(testData, RFV13D == 1010)$ADMITHOS), " for the test data")
+
+
+# build the model :
+fit8 <- glm(ADMITHOS ~ AGE + SEX, data = filter(trainingData,RFV13D == 1010), family = binomial)
+# make prediction :
+pred8 <- predict(fit8, newdata = filter(testData, RFV13D == 1010), type = "response")
+cat("Using a Logistic Regression model with 2 variables (age, gender), we get an RMSE of : ", RMSE(pred8, filter(testData, RFV13D == 1010)$ADMITHOS), " for the test data")
+
+
+# build the model :
+fit9 <- glm(ADMITHOS ~ AGE + SEX + RACEUN + ETHUN + NUMMED + TOTPROC + TOTDIAG, data = filter(trainingData,RFV13D == 1010), family = binomial)
+# make prediction :
+pred9 <- predict(fit9, newdata = filter(testData, RFV13D == 1010), type = "response")
+pred9a <- predict(fit9, newdata = filter(trainingData, RFV13D == 1010), type = "response")
+cat("Out-of-Sample Logistic Regression model with 7 variables (age, gender, race, ethnicity, meds, diagnostics, procedures), we get an RMSE of : ", RMSE(pred9, filter(testData, RFV13D == 1010)$ADMITHOS), " for the test data")
+cat("In-Sample RMSE for Logistic Regression model with 7 variables (age, gender, race, ethnicity, meds, diagnostics, procedures) : ", RMSE(pred9a, filter(trainingData, RFV13D == 1010)$ADMITHOS), " for the test data")
+
+``` 
+For the most common complaint in adults (stomach / abdominal pain), it looks like a model based on age and gender gives a slight improvement over the naive model.  
+Once again though - if we include additional variables, our RMSE is worse than the naive model and is much worse than our in-sample RMSE - it looks like we may be overfitting the data with this many variables. .
